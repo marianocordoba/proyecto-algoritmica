@@ -36,8 +36,22 @@ Para éste proyecto se utilizarán las siguientes *units*:
 
 * LinkedList:
 
-  Se utilizará la *unit* LinkedList para el manejo de listas encadenadas.
+  Se utilizará la *unit* LinkedList para el manejo de listas encadenadas. Ésta *unit*
+  contiene el tipo TLinkedList, que define una lista encadenada, así como métodos para
+  insertar, modificar o eliminar sus elementos entre otros.
+
+  Algunas de los métodos de LinkedList son:
+  * LL_Init - Inicializa una lista encadenada.
+  * LL_Push - Inserta un elemento al final de la lista.
+  * LL_Pop - Elimina un elemento del final de la lista.
+  * LL_Get - Obtiene el elemento de la lista en la posición dada.
+  * LL_Sort - Ordena los elementos de la lista.
+  * LL_Dispose - Elimina la lista y libera la memoria.
 
 * FileSystem:
 
   Ésta *unit* provee de métodos para facilitar el manejo de archivos.
+
+  Algunos de los métodos de FileSystem son:
+  * FS_Open - Abre un archivo para lectura o escritura, creando el archivo si no existe.
+  * FS_Exists - Chequea si un registro existe en un archivo.
