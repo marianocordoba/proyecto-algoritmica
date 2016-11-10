@@ -2,177 +2,397 @@ program Pasapalabra;
 
 uses
   Crt,
-  LinkedList;
+  SysUtils,
+  CharList,
+  UI;
+
+type
+  TPlayer = record
+    name: string;
+    score: integer;
+  end;
+
+  TArrWord = record
+    word: string[20];
+    letter: char;
+  end;
+
+  TWord = record
+    word: TCharList;
+    letter: char;
+    passed: boolean;
+  end;
+
+  TWords = array[0..25] of TWord;
+
+var
+  player: TPlayer;
+  words: TWords;
+  level, round: integer;
+  wordIndex: integer;
+
+procedure Main; forward;
+procedure PlayEasy; forward;
+procedure PlayHard; forward;
+procedure ShowWord; forward;
 
 {
-  Acción DrawWindow
+  Acción ConvertWord
 
-  Dibuja una "ventana" utilizando caracteres ASCII.
+  Dato w1: TArrWord
+  Dato-resultado w2: TWord
+
+  Convierte un TArrWord en un TWord.
 }
-procedure DrawWindow();
+procedure ConvertWord(w1: TArrWord; var w2: TWord);
 var
-  x, y: integer;
+  i: integer;
+  e: TElement;
 begin
-  ClrScr;
-  for x := windMinX + 4 to windMaxX - 5 do
+  i := 1;
+  CL_Init(w2.word);
+
+  while (i <= Length(w1.word)) do
   begin
-    GotoXY(x, windMinY + 1);
-    WriteLn('═');
-    GotoXY(x, windMaxY - 2);
-    WriteLn('═');
+    e.character := w1.word[i];
+    e.visible := true;
+    CL_Push(w2.word, e);
+    i := i + 1;
   end;
 
-  for y := windMinY + 2 to windMaxY - 3 do
-  begin
-    GotoXY(windMinX + 3, y);
-    WriteLn('║');
-    GotoXY(windMaxX - 4, y);
-    WriteLn('║');
-  end;
-
-  GotoXY(windMinX + 3, windMinY + 1);
-  WriteLn('╔');
-  GotoXY(windMaxX - 4, windMinY + 1);
-  WriteLn('╗');
-  GotoXY(windMinX + 3, windMaxY - 2);
-  WriteLn('╚');
-  GotoXY(windMaxX - 4, windMaxY - 2);
-  WriteLn('╝');
+  w2.letter := w1.letter;
+  w2.passed := false;
 end;
 
 {
-  Acción DrawLogo
+  Acción HideLetters
 
-  Imprime el logo del juego.
-     ___  __   __   __   ___  __   _     __   ___  ___   __
-   | |_)/ /\ ( (` / /\ | |_)/ /\ | |   / /\ | |_)| |_) / /\
-  |_| /_/--\_)_)/_/--\|_| /_/--\|_|__/_/--\|_|_)|_| \/_/--\
+  Dato-resultado word: TWord
+  Dato quantity: Integer
+
+  Oculta algunas letras de la palabra.
 }
-procedure DrawLogo();
+procedure HideLetters(var word: TWord; quantity: integer);
+var
+  // q = Cantidad de letras ocultas
+  q, i: integer;
+  e: TElement;
+begin
+  q := 0;
+
+  if (CL_Length(word.word) <= 4) then
+    quantity := 1;
+
+  while (q < quantity) do
+  begin
+    i := Random(CL_Length(word.word));
+    e := CL_Get(word.word, i);
+    if (e.character <> word.letter) and (e.visible) then
+    begin
+      e.visible := false;
+      CL_Set(word.word, e, i);
+      q := q + 1;
+    end;
+  end;
+end;
+
+{
+  Acción LoadWords
+
+  Dato-resultado words: TWords
+
+  Carga las palabras a usar en un arreglo.
+  Para esto lee las palabras del archivo, seleciona una para cada letra, las
+  convierte a listas y esconde algunas de sus letras.
+}
+procedure LoadWords(var words: TWords);
+const
+  filePath = 'words.dat';
+var
+  f: file of TArrWord;
+  w1: TArrWord;
+  w2: TWord;
+  i, j, k: integer;
+begin
+  Assign(f, filePath);
+  Reset(f);
+
+  i := 0;
+  j := 0;
+  k := Random(5);
+
+  while not (EOF(f)) do
+  begin
+    Read(f, w1);
+
+    if (i = k) then
+    begin
+      ConvertWord(w1, w2);
+
+      if (level = 1) then
+        HideLetters(w2, 2)
+      else
+        HideLetters(w2, 3);
+
+      words[j] := w2;
+      j := j + 1;
+    end;
+
+    if (i < 4) then
+    begin
+      i := i + 1;
+    end
+    else
+    begin
+      i := 0;
+      k := Random(5);
+    end;
+  end;
+
+  Close(f);
+end;
+
+{
+  Acción Exit
+
+  Limpia la pantalla y sale del programa.
+}
+procedure Exit;
+begin
+  ClrScr;
+  Halt;
+end;
+
+{
+  Acción SelectLevel
+
+  Permite al usuario seleccionar la dificultad.
+}
+procedure SelectLevel;
+var
+  item: TMenuItem;
+  items: TMenuItems;
+begin
+  UI_DrawWindow;
+
+  UI_Write('Seleccione la dificultad', (windMaxX - 24) div 2, windMinY + 5);
+
+  item.text := 'Fácil';
+  item.action := @PlayEasy;
+  items.items[0] := item;
+
+  item.text := 'Difícil';
+  item.action := @PlayHard;
+  items.items[1] := item;
+
+  item.text := 'Volver';
+  item.action := @Exit;
+  items.items[2] := item;
+
+  items.count := 3;
+
+  UI_Menu(items, (windMaxX - 6) div 2, windMaxY - 6);
+end;
+
+{
+  Acción Pass
+
+  Pasa una palabra para ser adivinada después.
+}
+procedure Pass;
+begin
+  words[wordIndex].passed := true;
+  wordIndex := wordIndex + 1;
+  ShowWord;
+end;
+
+procedure GuessWord;
+var
+  x, y: integer;
+  word: string;
+begin
+  ClrScr;
+  UI_DrawWindow;
+
+  // CL_Length * 2 para compensar los espacios que se muestran en CL_Show
+  x := (windMaxX - (CL_Length(words[wordIndex].word) * 2)) div 2;
+  y := windMinY + 10;
+  GotoXY(x, y + 1);
+  CL_Show(words[wordIndex].word, false);
+
+  UI_Write(Concat('Jugador: ', player.name), windMinX + 4, windMinY + 2);
+  UI_Write(Concat('Puntaje: ', IntToStr(player.score)), windMaxX - 16, windMinY + 2);
+  UI_Write(Concat('Letra: ', Uppercase(words[wordIndex].letter)), (windMaxX - 8) div 2, windMinY + 2);
+
+  x := (windMaxX - 22) div 2;
+  y := windMaxY - 6;
+  UI_DrawBox(x, y, 22, 3);
+  GotoXY(x + 1, y + 1);
+
+  word := '';
+  while (Length(word) <= 0) do
+    ReadLn(word);
+
+  x := (windMaxX - 10) div 2;
+
+  if (CL_Equals(words[wordIndex].word, word)) then
+  begin
+    UI_Write('¡Correcto!', x, y - 3);
+    if (round = 1) then
+      player.score := player.score + 2
+    else
+      player.score := player.score + 1;
+  end
+  else
+    UI_Write('Incorrecto', x, y - 3);
+  Delay(1000);
+
+  wordIndex := wordIndex + 1;
+  ShowWord;
+end;
+
+{
+  Acción ShowWord
+
+  Muestra una palabra para ser adivinada.
+}
+procedure ShowWord;
+var
+  item: TMenuItem;
+  items: TMenuItems;
+  x, y, i: integer;
+begin
+  if (round = 1) and (wordIndex > 25) then
+  begin
+    wordIndex := 0;
+    round := 2;
+  end;
+
+  ClrScr;
+  UI_DrawWindow;
+
+  // CL_Length * 2 para compensar los espacios que se muestran en CL_Show
+  x := (windMaxX - (CL_Length(words[wordIndex].word) * 2)) div 2;
+  y := windMinY + 10;
+  GotoXY(x, y + 1);
+  CL_Show(words[wordIndex].word, false);
+
+  UI_Write(Concat('Jugador: ', player.name), windMinX + 4, windMinY + 2);
+  UI_Write(Concat('Puntaje: ', IntToStr(player.score)), windMaxX - 16, windMinY + 2);
+  UI_Write(Concat('Letra: ', Uppercase(words[wordIndex].letter)), (windMaxX - 8) div 2, windMinY + 2);
+
+  // Se usa i para acomodar los elementos del menú.
+  i := -1;
+  if (round = 1) then
+  begin
+    i := 0;
+    item.text := 'Pasapalabra';
+    item.action := @Pass;
+    items.items[i] := item;
+  end;
+
+  item.text := 'Adivinar palabra';
+  item.action := @GuessWord;
+  items.items[i + 1] := item;
+
+  item.text := 'Volver';
+  item.action := @Main;
+  items.items[i + 2] := item;
+
+  items.count := i + 3;
+
+  // Si i = -1 se baja un lugar para compensar el elemento faltante.
+  UI_Menu(items, (windMaxX - 16) div 2, windMaxY - 6 + (i * -1));
+end;
+
+{
+  Acción Play
+
+  Inicia una partida en el nivel dado.
+}
+procedure Play();
+begin
+  UI_DrawWindow;
+
+  LoadWords(words);
+
+  round := 1;
+  wordIndex := 0;
+  ShowWord;
+end;
+procedure PlayEasy;
+begin
+  level := 1;
+  Play;
+end;
+procedure PlayHard;
+begin
+  level := 2;
+  Play;
+end;
+
+{
+  Acción Main
+
+  Muestra el menú principal del juego.
+}
+procedure Main;
+var
+  item: TMenuItem;
+  items: TMenuItems;
+begin
+  UI_DrawWindow;
+  UI_DrawLogo;
+
+  item.text := 'Iniciar partida';
+  item.action := @SelectLevel;
+  items.items[0] := item;
+
+  item.text := 'Ver mi promedio';
+  item.action := @Exit;
+  items.items[1] := item;
+
+  item.text := 'Cambiar de usuario';
+  item.action := @Exit;
+  items.items[2] := item;
+
+  item.text := 'Mejores puntajes';
+  item.action := @Exit;
+  items.items[3] := item;
+
+  item.text := 'Salir';
+  item.action := @Exit;
+  items.items[4] := item;
+
+  items.count := 5;
+
+  UI_Menu(items, (windMaxX - 20) div 2, windMaxY - 8);
+end;
+
+{
+  Acción Welcome
+
+  Dato-resultado pn: String;
+
+  Muestra un mensaje de bienvenida y pide al usuario que ingrese su nombre.
+}
+procedure Welcome(var pn: string);
 var
   x: integer;
 begin
-  // Se calcula x para centrar el logo.
-  x := (windMaxX - 57) div 2;
-  GotoXY(x, windMinY + 2);
-  WriteLn(' ___  __   __   __   ___  __   _     __   ___  ___   __  ');
-  GotoXY(x, windMinY + 3);
-  WriteLn('| |_)/ /\ ( (` / /\ | |_)/ /\ | |   / /\ | |_)| |_) / /\ ');
-  GotoXY(x, windMinY + 4);
-  WriteLn('|_| /_/--\_)_)/_/--\|_| /_/--\|_|__/_/--\|_|_)|_| \/_/--\');
-end;
+  UI_DrawWindow;
+  UI_DrawLogo;
 
-{
-  Acción MainMenu
-
-  Muestra el menú principal del juego y maneja la interacción entre el usuario
-  y dicho menú.
-}
-procedure MainMenu();
-const
-  optionsQuantity = 6;
-var
-  k: char; // Key pressed
-  options: array[0..optionsQuantity - 1] of string;
-  selectedOption: integer;
-  i, x, y: integer;
-begin
-  options[0] := 'Iniciar juego';
-  options[1] := 'Ver mi promedio';
-  options[2] := 'Cambiar de usuario';
-  options[3] := 'Crear nuevo usuario';
-  options[4] := 'Mejores puntajes';
-  options[5] := 'Salir';
-
-  // Se calcula x e y para centrar el menú.
-  x := (windMaxX - 20) div 2;
-  y := (windMaxY - optionsQuantity) div 2;
-
-  for i := 0 to optionsQuantity - 1 do
-  begin
-    GotoXY(x, y + i);
-    WriteLn(options[i]);
-  end;
-
-  GotoXY(x - 2, y);
-  selectedOption := 0;
-
-  k := ReadKey;
-  // #27 = ESC, #13 = ENTER
-  while (k <> #27) and not ((k = #13) and (selectedOption = 5)) do
-  begin
-    if (Ord(k) = 0) then
-    begin
-      {
-        Si Ord(k) = 0, entonces se trata de un caracter extendido. Se lee de
-        nuevo la tecla para obtener el valor del caracter extendido.
-      }
-      k := ReadKey;
-
-      // #80 = ↓
-      if (k = #80) then
-      begin
-        if (selectedOption < 5) then
-        begin
-          selectedOption := selectedOption + 1;
-          GotoXY(x - 2, y + selectedOption);
-        end;
-      end;
-
-      // #72 = ↑
-      if (k = #72) then
-        begin
-          if (selectedOption > 0) then
-          begin
-            selectedOption := selectedOption - 1;
-            GotoXY(x - 2, y + selectedOption);
-          end;
-        end;
-    end;
-
-    if (k = #13) then
-    begin
-      case selectedOption of
-        0:
-        begin
-          GotoXY(windMinX + 5, windMaxY - 3);
-          WriteLn('Iniciar juego: No implementado.       ');
-          GotoXY(x - 2, y + selectedOption);
-        end;
-        1:
-        begin
-          GotoXY(windMinX + 5, windMaxY - 3);
-          WriteLn('Ver mi promedio: No implementado.     ');
-          GotoXY(x - 2, y + selectedOption);
-        end;
-        2:
-        begin
-          GotoXY(windMinX + 5, windMaxY - 3);
-          WriteLn('Cambiar de usuario. No implementado.  ');
-          GotoXY(x - 2, y + selectedOption);
-        end;
-        3:
-        begin
-          GotoXY(windMinX + 5, windMaxY - 3);
-          WriteLn('Crear nuevo usuario. No implementado. ');
-          GotoXY(x - 2, y + selectedOption);
-        end;
-        4:
-        begin
-          GotoXY(windMinX + 5, windMaxY - 3);
-          WriteLn('Mejores puntajes: No implementado.    ');
-          GotoXY(x - 2, y + selectedOption);
-        end;
-      end;
-    end;
-
-    k := ReadKey;
-  end;
+  x := (windMaxX - 32) div 2;
+  UI_Write('  ¡Bienvenido a Pasapalabra!  ', x, windMaxY - 9);
+  UI_Write('Ingresa tu nombre para comenzar', x, windMaxY - 8);
+  UI_DrawBox(x, windMaxY - 6, 32, 3);
+  GotoXY(x + 2, windMaxY - 5);
+  ReadLn(pn);
 end;
 
 begin
-  DrawWindow;
-  DrawLogo;
-  MainMenu;
-  ClrScr;
+  Randomize;
+  Welcome(player.name);
+  Main;
 end.

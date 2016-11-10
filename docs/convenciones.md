@@ -22,8 +22,6 @@ procedure DoSomething();
 
 * Las palabras reservadas de Pascal (`var`, `string`, `while`, etc.) deben estar en minúscula.
 
-* El código debe estar indentado con 2 espacios. NO usar tabulaciones.
-
 * Las acciones y funciones deben tener un encabezado en el que se detallen los
 datos que recibe y devuelve, así como una breve descripción de su función.
 
