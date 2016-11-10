@@ -62,3 +62,6 @@ Luego de una breve investigación se modifica la acción para que reciba un arre
 cada una relaccionada con una acción que es pasada como parámetro para ser llamada dentr de
 la acción que genera el menú. De esta manera se puede usar la acción para mostrar menus en
 cualquier parte del programa sin reescribir código.
+
+Habiendo completado el código que permite al usuario jugar, se debe pensar de qué manera
+se va a guardar los datos y el puntaje del jugador.
