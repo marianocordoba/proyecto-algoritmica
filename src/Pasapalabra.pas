@@ -175,7 +175,7 @@ begin
   y := windMinY + 10;
   UI_Write(Concat('¡Felicidades ', player.name, '!'), x, y);
 
-  x := (windMaxX - 20) div 2;
+  x := (windMaxX - 24) div 2;
   y := y + 1;
   UI_Write(Concat('Conseguiste ', IntToStr(player.score), ' puntos'), x, y);
 
@@ -319,7 +319,7 @@ begin
 
   x := (windMaxX - 12) div 2;
   y := windMinY + 6;
-  UI_Write(Concat(FloatToStr(score), ' puntos'), x, y);
+  UI_Write(Concat(FormatFloat('#.##;;0', score), ' puntos'), x, y);
 
   item.text := 'Volver';
   item.action := @Main;

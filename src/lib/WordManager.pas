@@ -72,8 +72,11 @@ implementation
   begin
     q := 0;
 
-    if (CL_Length(word.word) <= 4) then
+    if (CL_Length(word.word) < 4) then
       quantity := 1;
+
+    if (CL_Length(word.word) = 4) then
+      quantity := 2;
 
     while (q < quantity) do
     begin

@@ -164,7 +164,10 @@ implementation
       end;
     end;
 
-    PM_AverageScore := Average(playerScores, playerScores.count);
+    if (playerScores.count = 0) then
+      PM_AverageScore := 0
+    else
+      PM_AverageScore := Average(playerScores, playerScores.count);
   end;
 
 end.
