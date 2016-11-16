@@ -1,3 +1,7 @@
+{
+  Ésta unidad permite dibujar una interfaz de usuario en la consola.
+}
+
 unit UI;
 
 interface

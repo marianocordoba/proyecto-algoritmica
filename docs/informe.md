@@ -65,3 +65,6 @@ cualquier parte del programa sin reescribir código.
 
 Habiendo completado el código que permite al usuario jugar, se debe pensar de qué manera
 se va a guardar los datos y el puntaje del jugador.
+
+Se decide crear una *unit* que permita guardar los puntajes del jugador, así como recuperar
+el puntaje promedio y los puntajes más altos.

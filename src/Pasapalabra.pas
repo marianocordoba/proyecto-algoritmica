@@ -4,26 +4,9 @@ uses
   Crt,
   SysUtils,
   CharList,
+  WordManager,
+  PlayerManager,
   UI;
-
-type
-  TPlayer = record
-    name: string;
-    score: integer;
-  end;
-
-  TArrWord = record
-    word: string[20];
-    letter: char;
-  end;
-
-  TWord = record
-    word: TCharList;
-    letter: char;
-    passed: boolean;
-  end;
-
-  TWords = array[0..25] of TWord;
 
 var
   player: TPlayer;
@@ -36,122 +19,6 @@ procedure Main; forward;
 procedure PlayEasy; forward;
 procedure PlayHard; forward;
 procedure ShowWord; forward;
-
-{
-  Acción ConvertWord
-
-  Dato w1: TArrWord
-  Dato-resultado w2: TWord
-
-  Convierte un TArrWord en un TWord.
-}
-procedure ConvertWord(w1: TArrWord; var w2: TWord);
-var
-  i: integer;
-  e: TElement;
-begin
-  i := 1;
-  CL_Init(w2.word);
-
-  while (i <= Length(w1.word)) do
-  begin
-    e.character := w1.word[i];
-    e.visible := true;
-    CL_Push(w2.word, e);
-    i := i + 1;
-  end;
-
-  w2.letter := w1.letter;
-  w2.passed := false;
-end;
-
-{
-  Acción HideLetters
-
-  Dato-resultado word: TWord
-  Dato quantity: Integer
-
-  Oculta algunas letras de la palabra.
-}
-procedure HideLetters(var word: TWord; quantity: integer);
-var
-  // q = Cantidad de letras ocultas
-  q, i: integer;
-  e: TElement;
-begin
-  q := 0;
-
-  if (CL_Length(word.word) <= 4) then
-    quantity := 1;
-
-  while (q < quantity) do
-  begin
-    i := Random(CL_Length(word.word));
-    e := CL_Get(word.word, i);
-    if (e.character <> word.letter) and (e.visible) then
-    begin
-      e.visible := false;
-      CL_Set(word.word, e, i);
-      q := q + 1;
-    end;
-  end;
-end;
-
-{
-  Acción LoadWords
-
-  Dato-resultado words: TWords
-
-  Carga las palabras a usar en un arreglo.
-  Para esto lee las palabras del archivo, seleciona una para cada letra, las
-  convierte a listas y esconde algunas de sus letras.
-}
-procedure LoadWords(var words: TWords);
-const
-  filePath = 'words.dat';
-var
-  f: file of TArrWord;
-  w1: TArrWord;
-  w2: TWord;
-  i, j, k: integer;
-begin
-  Assign(f, filePath);
-  Reset(f);
-
-  i := 0;
-  j := 0;
-  k := Random(5);
-
-  while not (EOF(f)) do
-  begin
-    Read(f, w1);
-
-    if (i = k) then
-    begin
-      ConvertWord(w1, w2);
-
-      if (level = 1) then
-        HideLetters(w2, 2)
-      else
-        HideLetters(w2, 3);
-
-      words[j] := w2;
-      j := j + 1;
-    end;
-
-    if (i < 4) then
-    begin
-      i := i + 1;
-    end
-    else
-    begin
-      i := 0;
-      k := Random(5);
-    end;
-  end;
-
-  Close(f);
-end;
 
 {
   Acción Exit
@@ -173,10 +40,13 @@ procedure SelectLevel;
 var
   item: TMenuItem;
   items: TMenuItems;
+  x, y: integer;
 begin
   UI_DrawWindow;
 
-  UI_Write('Seleccione la dificultad', (windMaxX - 24) div 2, windMinY + 5);
+  x := (windMaxX - 24) div 2;
+  y := windMinY + 3;
+  UI_Write('Seleccione la dificultad', x, y);
 
   item.text := 'Fácil';
   item.action := @PlayEasy;
@@ -192,7 +62,9 @@ begin
 
   items.count := 3;
 
-  UI_Menu(items, (windMaxX - 6) div 2, windMaxY - 6);
+  x := (windMaxX - 6) div 2;
+  y := windMaxY - 6;
+  UI_Menu(items, x, y);
 end;
 
 {
@@ -208,23 +80,45 @@ begin
   ShowWord;
 end;
 
+{
+  Acción ShowPlayerStats
+
+  Muestra nombre y puntaje del jugador, y la letra con la que está jugando.
+}
+procedure ShowPlayerStats;
+var
+  x, y: integer;
+begin
+  x := windMinX + 4;
+  y := windMinY + 2;
+  UI_Write(Concat('Jugador: ', player.name), x, y);
+
+  x := windMaxX - 16;
+  UI_Write(Concat('Puntaje: ', IntToStr(player.score)), x, y);
+
+  x := (windMaxX - 8) div 2;
+  UI_Write(Concat('Letra: ', Uppercase(words[wordIndex].letter)), x, y);
+end;
+
+{
+  Acción GuessWord
+
+  Muestra una pantalla que le permite al usuario ingresar la palabra a adivinar
+}
 procedure GuessWord;
 var
   x, y: integer;
   word: string;
 begin
-  ClrScr;
   UI_DrawWindow;
 
   // CL_Length * 2 para compensar los espacios que se muestran en CL_Show
   x := (windMaxX - (CL_Length(words[wordIndex].word) * 2)) div 2;
   y := windMinY + 10;
-  GotoXY(x, y + 1);
+  GotoXY(x, y);
   CL_Show(words[wordIndex].word, false);
 
-  UI_Write(Concat('Jugador: ', player.name), windMinX + 4, windMinY + 2);
-  UI_Write(Concat('Puntaje: ', IntToStr(player.score)), windMaxX - 16, windMinY + 2);
-  UI_Write(Concat('Letra: ', Uppercase(words[wordIndex].letter)), (windMaxX - 8) div 2, windMinY + 2);
+  ShowPlayerStats;
 
   x := (windMaxX - 22) div 2;
   y := windMaxY - 6;
@@ -237,8 +131,8 @@ begin
     ReadLn(word);
   end;
 
-  x := (windMaxX - 10) div 2;
 
+  x := (windMaxX - 10) div 2;
   if (CL_Equals(words[wordIndex].word, word)) then
   begin
     TextColor(green);
@@ -264,24 +158,24 @@ begin
 end;
 
 {
-  Acción SaveScore
+  Acción ShowScore
 
   Muestra y guarda el puntaje del jugador.
 }
-procedure SaveScore;
+procedure ShowScore;
 var
   item: TMenuItem;
   items: TMenuItems;
   x, y: integer;
 begin
-  ClrScr;
   UI_DrawWindow;
+  PM_SaveScore(player);
 
-  x := (windMaxX - 14 - Length(player.name)) div 2;
+  x := (windMaxX - 16 - Length(player.name)) div 2;
   y := windMinY + 10;
   UI_Write(Concat('¡Felicidades ', player.name, '!'), x, y);
 
-  x := (windMaxX - 22) div 2;
+  x := (windMaxX - 20) div 2;
   y := y + 1;
   UI_Write(Concat('Conseguiste ', IntToStr(player.score), ' puntos'), x, y);
 
@@ -324,20 +218,17 @@ begin
   end;
 
   if (round = 2) and (wordIndex > 25) then
-    SaveScore;
+    ShowScore;
 
-  ClrScr;
   UI_DrawWindow;
 
   // CL_Length * 2 para compensar los espacios que se muestran en CL_Show
   x := (windMaxX - (CL_Length(words[wordIndex].word) * 2)) div 2;
   y := windMinY + 10;
-  GotoXY(x, y + 1);
+  GotoXY(x, y);
   CL_Show(words[wordIndex].word, false);
 
-  UI_Write(Concat('Jugador: ', player.name), windMinX + 4, windMinY + 2);
-  UI_Write(Concat('Puntaje: ', IntToStr(player.score)), windMaxX - 16, windMinY + 2);
-  UI_Write(Concat('Letra: ', Uppercase(words[wordIndex].letter)), (windMaxX - 8) div 2, windMinY + 2);
+  ShowPlayerStats;
 
   // Se usa i para acomodar los elementos del menú.
   i := -1;
@@ -360,7 +251,84 @@ begin
   items.count := i + 3;
 
   // Si i = -1 se baja un lugar para compensar el elemento faltante.
-  UI_Menu(items, (windMaxX - 16) div 2, windMaxY - 6 + (i * -1));
+  x := (windMaxX - 16) div 2;
+  y := windMaxY - 6 + (i * (-1));
+  UI_Menu(items, x, y);
+end;
+
+{
+  Acción HighScores
+
+  Muestra los 10 mejores puntajes.
+}
+procedure HighScores;
+var
+  players: TPlayers;
+  item: TMenuItem;
+  items: TMenuItems;
+  x, y, i: integer;
+begin
+  UI_DrawWindow;
+
+  players := PM_HighScores;
+
+  x := (windMaxX - 18) div 2;
+  y := windMinY + 3;
+  UI_Write('Mejores puntajes', x, y);
+
+  i := 0;
+  x := (windMaxX - 28) div 2;
+  y := windMinY + 6;
+  while (i < 10) and (i < players.count) do
+  begin
+    UI_Write(IntToStr(i + 1), x, y + i);
+    UI_Write(players.data[i].name, x + 3, y + i);
+    UI_Write(IntToStr(players.data[i].score), x + 26, y + i);
+    i := i + 1;
+  end;
+
+  item.text := 'Volver';
+  item.action := @Main;
+  items.items[0] := item;
+  items.count := 1;
+
+  x := (windMaxX - 6) div 2;
+  y := windMaxY - 4;
+  UI_Menu(items, x, y);
+end;
+
+{
+  Acción AverageScore
+
+  Muestra el puntaje promedio del jugador actual.
+}
+procedure AverageScore;
+var
+  item: TMenuItem;
+  items: TMenuItems;
+  x, y: integer;
+  score: real;
+begin
+  UI_DrawWindow;
+
+  score := PM_AverageScore(player.name);
+
+  x := (windMaxX - 18) div 2;
+  y := windMinY + 3;
+  UI_Write('Puntaje promedio', x, y);
+
+  x := (windMaxX - 12) div 2;
+  y := windMinY + 6;
+  UI_Write(Concat(FloatToStr(score), ' puntos'), x, y);
+
+  item.text := 'Volver';
+  item.action := @Main;
+  items.items[0] := item;
+  items.count := 1;
+
+  x := (windMaxX - 6) div 2;
+  y := windMaxY - 4;
+  UI_Menu(items, x, y);
 end;
 
 {
@@ -372,7 +340,7 @@ procedure Play();
 begin
   UI_DrawWindow;
 
-  LoadWords(words);
+  WM_LoadWords(words, level);
 
   round := 1;
   wordIndex := 0;
@@ -408,7 +376,7 @@ begin
   items.items[0] := item;
 
   item.text := 'Ver mi promedio';
-  item.action := @Exit;
+  item.action := @AverageScore;
   items.items[1] := item;
 
   item.text := 'Cambiar de usuario';
@@ -416,7 +384,7 @@ begin
   items.items[2] := item;
 
   item.text := 'Mejores puntajes';
-  item.action := @Exit;
+  item.action := @HighScores;
   items.items[3] := item;
 
   item.text := 'Salir';
@@ -437,14 +405,15 @@ end;
 }
 procedure Welcome(var pn: string);
 var
-  x: integer;
+  x, y: integer;
 begin
   UI_DrawWindow;
   UI_DrawLogo;
 
   x := (windMaxX - 32) div 2;
-  UI_Write('  ¡Bienvenido a Pasapalabra!  ', x, windMaxY - 9);
-  UI_Write('Ingresa tu nombre para comenzar', x, windMaxY - 8);
+  y := windMaxY - 9;
+  UI_Write('  ¡Bienvenido a Pasapalabra!  ', x, y);
+  UI_Write('Ingresa tu nombre para comenzar', x, y + 1);
   UI_DrawBox(x, windMaxY - 6, 32, 3);
 
   pn := '';
