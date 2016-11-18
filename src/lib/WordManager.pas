@@ -7,6 +7,7 @@ unit WordManager;
 interface
 
 uses
+  Crt,
   SysUtils,
   CharList;
 
@@ -112,6 +113,13 @@ implementation
     Randomize;
     Assign(f, filePath);
     Reset(f);
+
+    if (EOF(f)) then
+    begin
+      ClrScr;
+      WriteLn('Se ha producido un error al cargar las palabras.');
+      Halt;
+    end;
 
     i := 0;
     j := 0;
