@@ -41,6 +41,10 @@ que sirven para dibujar la interfaz son movidas a una nueva *unit* llamada `UI` 
 el código más ordenado. La acción que muestra el menú es mantenida en el archivo principal para
 poder llamar a otras acciones desde dentro de dicha acción.
 
+El archivo `words.dat` (*palabras.dat*) es generado utilizando el código disponible en el SIAT,
+realizandolé al mismo ciertas modificaciones para que se adapte a los tipos usados en el
+programa.
+
 Para comenzar con el juego principal, se crea una acción que lea el archivo que contiene las
 palabras y seleccioné 26 palabras para jugar. Dicha acción lee el archivo y recorre las palabras,
 seleccionando una al azar para cada letra. Una vez seleccionada una palabra para una letra, se
@@ -68,3 +72,12 @@ se va a guardar los datos y el puntaje del jugador.
 
 Se decide crear una *unit* que permita guardar los puntajes del jugador, así como recuperar
 el puntaje promedio y los puntajes más altos.
+
+Se realiza una refactorización del código, dejando en el archivo principal la mínima cantidad
+de código posible.
+
+El juego es probado repetidas veces para asegurarse que no hay fallas. Al ser probado en
+Windows falla, probablemente por problemas con la codificación de caracteres de la consola.
+En Ubuntu Mate funciona perfectamente.
+
+Una vez terminado el desarrollo del juego, se procede a escribir el manual de usuario del mismo.

@@ -19,15 +19,29 @@ procedure Main; forward;
 procedure PlayEasy; forward;
 procedure PlayHard; forward;
 procedure ShowWord; forward;
+procedure Welcome; forward;
 
 {
   Acción Exit
 
-  Limpia la pantalla y sale del programa.
+  Limpia la pantalla y la memoria y sale del programa.
 }
 procedure Exit;
+var
+  i: integer;
 begin
   ClrScr;
+
+  if (CL_Length(words[0].word) <> 0) then
+  begin
+    i := 0;
+    while (i < 25) do
+    begin
+      CL_Dispose(words[i].word);
+      i := i + 1;
+    end;
+  end;
+
   Halt;
 end;
 
@@ -367,9 +381,14 @@ procedure Main;
 var
   item: TMenuItem;
   items: TMenuItems;
+  x, y: integer;
 begin
   UI_DrawWindow;
   UI_DrawLogo;
+
+  x := (windMaxX - 8 - Length(player.name)) div 2;
+  y := windMaxY - 12;
+  UI_Write(Concat('Jugador: ', player.name), x, y);
 
   item.text := 'Iniciar partida';
   item.action := @SelectLevel;
@@ -380,7 +399,7 @@ begin
   items.items[1] := item;
 
   item.text := 'Cambiar de usuario';
-  item.action := @Exit;
+  item.action := @Welcome;
   items.items[2] := item;
 
   item.text := 'Mejores puntajes';
@@ -393,17 +412,17 @@ begin
 
   items.count := 5;
 
-  UI_Menu(items, (windMaxX - 20) div 2, windMaxY - 8);
+  x := (windMaxX - 16) div 2;
+  y := windMaxY - 8;
+  UI_Menu(items, x, y);
 end;
 
 {
   Acción Welcome
 
-  Dato-resultado pn: String;
-
   Muestra un mensaje de bienvenida y pide al usuario que ingrese su nombre.
 }
-procedure Welcome(var pn: string);
+procedure Welcome();
 var
   x, y: integer;
 begin
@@ -416,16 +435,16 @@ begin
   UI_Write('Ingresa tu nombre para comenzar', x, y + 1);
   UI_DrawBox(x, windMaxY - 6, 32, 3);
 
-  pn := '';
-  while (Length(pn) < 1) do
+  player.name := '';
+  while (Length(player.name) < 1) do
   begin
     GotoXY(x + 2, windMaxY - 5);
-    ReadLn(pn);
+    ReadLn(player.name);
   end;
+
+  Main;
 end;
 
 begin
-  Randomize;
-  Welcome(player.name);
-  Main;
+  Welcome;
 end.

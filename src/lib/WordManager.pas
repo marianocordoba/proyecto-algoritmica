@@ -109,6 +109,7 @@ implementation
     w2: TWord;
     i, j, k: integer;
   begin
+    Randomize;
     Assign(f, filePath);
     Reset(f);
 
