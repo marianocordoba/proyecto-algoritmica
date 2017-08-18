@@ -1,2 +1,3 @@
 docs/*.pdf
-dist/
+dist/*
+!dist/.gitkeep
